@@ -25,15 +25,13 @@ Parse the video ID from the URL:
 
 ### Step 2: Get transcript (preferred)
 
-Try `yt-dlp` if available:
-
+**Option A — yt-dlp** (most reliable):
 ```bash
 yt-dlp --write-auto-sub --sub-lang en --skip-download --output "/tmp/%(id)s" "VIDEO_URL"
 cat /tmp/VIDEO_ID.en.vtt 2>/dev/null || cat /tmp/VIDEO_ID.en.srt 2>/dev/null
 ```
 
-Or with `youtube_transcript_api` (Python, v1.x+):
-
+**Option B — youtube_transcript_api** (Python, v1.x+):
 ```bash
 python3 -c "
 from youtube_transcript_api import YouTubeTranscriptApi
@@ -42,6 +40,36 @@ transcript = api.fetch('VIDEO_ID')
 for entry in transcript:
     print(entry.text)
 "
+```
+
+**Option C — Invidious proxy API** (use when direct YouTube access is blocked):
+
+Try public Invidious instances in order until one responds:
+```bash
+for HOST in yewtu.be invidious.nerdvpn.de inv.nadeko.net; do
+  python3 -c "
+import urllib.request, json, sys
+url = 'https://$HOST/api/v1/videos/VIDEO_ID'
+try:
+    req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+    with urllib.request.urlopen(req, timeout=10) as r:
+        d = json.loads(r.read())
+        print('TITLE:', d.get('title'))
+        print('AUTHOR:', d.get('author'))
+        print('DESC:', d.get('description','')[:500])
+        sys.exit(0)
+except: pass
+" && break
+done
+```
+
+To get captions via Invidious:
+```bash
+# List available caption tracks
+curl -s "https://yewtu.be/api/v1/captions/VIDEO_ID" | python3 -m json.tool
+
+# Fetch a specific caption (label from above list, e.g. 'English')
+curl -s "https://yewtu.be/api/v1/captions/VIDEO_ID?label=English"
 ```
 
 ### Step 3: Fetch video metadata
@@ -64,9 +92,12 @@ Given the transcript or available metadata, produce a summary with:
 
 ## Fallback When Transcript Is Unavailable
 
-If neither `yt-dlp` nor `youtube_transcript_api` is installed and WebFetch returns 403:
-1. Use `WebSearch` with the video ID and known fragments to find articles, discussions, or auto-generated captions indexed elsewhere.
-2. Tell the user what was found and offer to install `yt-dlp` for better results.
+Priority order when direct YouTube access is blocked:
+1. Try Invidious proxy API (Option C above) — works in restricted networks
+2. Use `WebSearch` with the video ID to find indexed articles, discussions, or captions
+3. Tell the user what was found and recommend `yt-dlp` for richer results
+
+If the entire environment blocks outbound connections to YouTube and its proxies, inform the user — no code change can bypass a network-level restriction.
 
 ## Installing yt-dlp (one-time setup)
 
