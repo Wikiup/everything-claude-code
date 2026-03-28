@@ -1,0 +1,17 @@
+{
+  "name": "crypto-briefing",
+  "version": "1.0.0",
+  "description": "Daily crypto market briefing sent via email using Claude AI",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "setup-cron": "node setup-cron.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "nodemailer": "^6.9.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
